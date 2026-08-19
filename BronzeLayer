@@ -1,0 +1,220 @@
+/*
+🥉 Bronze Layer – SQL Data Warehouse
+
+Implemented the **Bronze Layer** of a SQL Data Warehouse following the **Medallion Architecture**, with raw data ingestion from **CRM and ERP source systems**.
+
+Key implementations:
+
+* Designed Bronze-layer **DDL tables** for 6 CRM/ERP source datasets.
+* Preserved source-system structures and data types for raw ingestion.
+* Implemented a centralized **`bronze.load_bronze` stored procedure** to automate the complete loading process.
+* Used **`TRUNCATE TABLE`** before each load to ensure a clean and consistent refresh.
+* Used **`BULK INSERT`** for high-volume CSV data ingestion.
+* Added separate processing sections for **CRM and ERP** source systems.
+* Implemented **load start/end timestamps** and calculated individual table load durations.
+* Added **batch-level execution timing** to monitor the overall Bronze-layer performance.
+* Implemented **`TRY...CATCH` error handling** with error message, number, and state reporting.
+* Added detailed **`PRINT` logging** to track each table's loading status and execution progress.
+* Designed the procedure to support a repeatable and automated **ETL/ELT ingestion workflow**.
+
+The Bronze Layer serves as the **raw landing zone**, providing a reliable foundation for data cleansing and transformation in the **Silver Layer**, followed by business-ready modeling in the **Gold Layer**.
+*/
+
+-- CREATING DDL for bronze layer AND BULK INSERT AND USE STORED PROCEDURES
+-- SOURCE_CRM
+IF OBJECT_ID ('bronze.crm_cust_info', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_cust_info;
+CREATE TABLE bronze.crm_cust_info 
+(
+	cst_id	INT,
+	cst_key	NVARCHAR(50),
+	cst_firstname NVARCHAR(50),
+	cst_lastname NVARCHAR(50),
+	cst_marital_status	NVARCHAR(50),
+	cst_gndr	NVARCHAR(50),
+	cst_create_date DATE
+)
+
+IF OBJECT_ID ('bronze.crm_prd_info', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_prd_info;
+CREATE TABLE bronze.crm_prd_info
+(
+	prd_id INT,
+	prd_key NVARCHAR(50),
+	prd_nm NVARCHAR(50),
+	prd_cost INT,
+	prd_line NVARCHAR(50),
+	prd_start_dt DATETIME,
+	prd_end_dt DATETIME
+)
+IF OBJECT_ID ('bronze.crm_sales_details', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_sales_details;
+CREATE TABLE bronze.crm_sales_details
+(
+	sls_ord_num NVARCHAR(50),
+	sls_prd_key	NVARCHAR(50),
+	sls_cust_id	INT,
+	sls_order_dt INT,
+	sls_ship_dt	INT,
+	sls_due_dt	INT,
+	sls_sales	INT,
+	sls_quantity INT,
+	sls_price INT
+)
+
+
+-- SOURCE_ERP
+IF OBJECT_ID ('bronze.erp_CUST_AZ12', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_CUST_AZ12;
+CREATE TABLE bronze.erp_CUST_AZ12
+(
+	CID NVARCHAR(50),
+	BDATE DATE,
+	GEN NVARCHAR(50)
+)
+
+IF OBJECT_ID ('bronze.erp_LOC_A101', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_LOC_A101;
+CREATE TABLE bronze.erp_LOC_A101
+(
+	CID NVARCHAR(50),
+	CNTRY NVARCHAR(50)
+)
+
+IF OBJECT_ID ('bronze.erp_PX_CAT_G1V2', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_PX_CAT_G1V2;
+CREATE TABLE bronze.erp_PX_CAT_G1V2
+(
+	ID NVARCHAR(50),
+	CAT NVARCHAR(50),
+	SUBCAT NVARCHAR(50),
+	MAINTENANCE NVARCHAR(50)
+)
+
+-- BULK INSERT
+CREATE OR ALTER PROCEDURE bronze.load_bronze AS
+BEGIN
+	DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DA
+	BEGIN TRY
+		SET @batch_start_time = GETDATE();
+		PRINT '=========================================================='
+		PRINT 'LOADING THE BRONZE LAYER';
+		PRINT '=========================================================='
+
+		PRINT '-------------------------------------------------------';
+		PRINT 'LOADING CRM TABLES';
+		PRINT '-------------------------------------------------------';
+
+		SET @start_time = GETDATE();
+
+		PRINT '>> TRUNCATING TABLE: bronze.crm_cust_info';
+		TRUNCATE TABLE bronze.crm_cust_info;
+		PRINT '>> INSERTING DATA INTO: bronze.crm_cust_info';
+		BULK INSERT bronze.crm_cust_info
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+
+		SET @start_time = GETDATE()
+		PRINT '>> TRUNCATING TABLE: bronze.crm_prd_info';
+		TRUNCATE TABLE bronze.crm_prd_info;
+		PRINT '>> INSERTING DATA INTO: bronze.crm_prd_info';
+		BULK INSERT bronze.crm_prd_info
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE()
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+		SET @start_time = GETDATE()
+		PRINT '>> TRUNCATING TABLE: bronze.crm_sales_details';
+		TRUNCATE TABLE bronze.crm_sales_details;
+		PRINT '>> INSERTING DATA INTO: bronze.crm_sales_details';
+		BULK INSERT bronze.crm_sales_details
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE()
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+		PRINT '-------------------------------------------------------';
+		PRINT 'LOADING ERP TABLES';
+		PRINT '-------------------------------------------------------';
+
+		SET @start_time = GETDATE()
+		PRINT '>> TRUNCATING TABLE: bronze.erp_CUST_AZ12';
+		TRUNCATE TABLE bronze.erp_CUST_AZ12;
+		PRINT '>> INSERTING DATA INTO: bronze.erp_CUST_AZ12';
+		BULK INSERT bronze.erp_CUST_AZ12
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE()
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+		SET @start_time = GETDATE()
+		PRINT '>> TRUNCATING TABLE: bronze.erp_LOC_A101';
+		TRUNCATE TABLE bronze.erp_LOC_A101;
+		PRINT '>> INSERTING DATA INTO: bronze.erp_LOC_A101';
+		BULK INSERT bronze.erp_LOC_A101
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE()
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+		SET @start_time = GETDATE()
+		PRINT '>> TRUNCATING TABLE: bronze.erp_PX_CAT_G1V2';
+		TRUNCATE TABLE bronze.erp_PX_CAT_G1V2;
+		PRINT '>> INSERTING DATA INTO: bronze.erp_CAT_G1V2';
+		BULK INSERT bronze.erp_PX_CAT_G1V2
+		FROM 'C:\Users\Saran\OneDrive\Desktop\Data Warehouse Project (SQL)
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		);
+		SET @end_time = GETDATE()
+		PRINT '>> Load duration: ' + CAST(DATEDIFF(second,@start_time,@end
+		PRINT '>>----------------------------------'
+
+		SET @batch_end_time = GETDATE();
+		PRINT '=================================='
+		PRINT 'Loading bronze layer is completed';
+		PRINT 'Total Load Duration:' + CAST(DATEDIFF(second,@batch_start_t
+		PRINT '=================================='
+	END TRY
+	BEGIN CATCH
+		PRINT '================================================';
+		PRINT 'ERROR OCCURED DURING LOADING BRONZE LAYER';
+		PRINT 'Error Message' + ERROR_MESSAGE();
+		PRINT 'Error Number' + CAST(ERROR_NUMBER() AS NVARCHAR);
+		PRINT 'Error Message' + CAST(ERROR_STATE() AS NVARCHAR);
+		PRINT '================================================';
+	END CATCH
+END
+
+EXEC bronze.load_bronze
