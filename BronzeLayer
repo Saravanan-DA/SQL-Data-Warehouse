@@ -20,6 +20,22 @@ Key implementations:
 The Bronze Layer serves as the **raw landing zone**, providing a reliable foundation for data cleansing and transformation in the **Silver Layer**, followed by business-ready modeling in the **Gold Layer**.
 */
 
+-- CREATE SCHEMAS
+
+-- CREATE DATABASE Datawarehouse
+
+CREATE DATABASE Datawarehouse
+
+USE Datawarehouse
+
+CREATE SCHEMA bronze;
+
+CREATE SCHEMA silver;
+
+CREATE SCHEMA gold;
+
+-- BRONZE LAYER CREATION
+
 -- CREATING DDL for bronze layer AND BULK INSERT AND USE STORED PROCEDURES
 -- SOURCE_CRM
 IF OBJECT_ID ('bronze.crm_cust_info', 'U') IS NOT NULL
